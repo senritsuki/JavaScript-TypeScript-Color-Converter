@@ -51,7 +51,13 @@ export namespace etc {
     export const lab_to_xyz_f1 = (t: number, n: number): number => Math.pow(3 / 29, 3) * (116 * t - 16) * n;
     export const lab_to_xyz_f = (t: number, n: number): number => t > 6 / 29 ? lab_to_xyz_f0(t, n) : lab_to_xyz_f1(t, n);
 
-    export function hsl_to_rgb01_f1(d6: number, h6: number): number {
+    export function hsl_to_rgb01_to_h6(h360: number): number {
+        const a = (h360 / 60) % 6;      // -> -6.0 .. 6.0
+        const b = a >= 0 ? a : a + 6;   // -> 0.0 .. 6.0 
+        return b;
+    }
+    export function hsl_to_rgb01_to_lmdl(h6: number): number {
+        const d6 = Math.floor(h6);
         switch (d6) {
             case 0: return h6;
             case 1: return 2 - h6;
@@ -62,7 +68,8 @@ export namespace etc {
         }
         return 0;
     }
-    export function hsl_to_rgb01_f2(d6: number, min: number, mdl: number, max: number): number[] {
+    export function hsl_to_rgb01_to_rgb(h6: number, min: number, mdl: number, max: number): number[] {
+        const d6 = Math.floor(h6);
         switch (d6) {
             case 0: return [max, mdl, min];
             case 1: return [mdl, max, min];
@@ -277,15 +284,11 @@ export function rgb01_to_hsl(rgb: number[]): number[] {
  * RGB array (0.0, 0.0, 0.0) .. (1.0, 1.0, 1.0)
  */
 export function hsl_to_rgb01(hsl: number[]): number[] {
-    const h = hsl[0], s = hsl[1], l = hsl[2];
-    const ld = 1 - Math.abs(2 * l - 1);   // 0%(黒):0, 25%:0.5, 50%:1.0, 75%:0.5, 100%(白):0
-    const sld = s * ld / 2;
-    const max = l + sld;
-    const min = l - sld;
-    const d6 = Math.floor(h * 6)
-    const h6 = h * 6;
-    const mdl = min == max ? min : (max - min) * etc.hsl_to_rgb01_f1(d6, h6);
-    const rgb = etc.hsl_to_rgb01_f2(d6, min, mdl, max);
+    const h6 = etc.hsl_to_rgb01_to_h6(hsl[0]), s = hsl[1], l = hsl[2];
+    const lmax = l + s / 2;
+    const lmin = l - s / 2;
+    const lmdl = lmin == lmax ? lmin : (lmax - lmin) * etc.hsl_to_rgb01_to_lmdl(h6);
+    const rgb = etc.hsl_to_rgb01_to_rgb(h6, lmin, lmdl, lmax);
     return rgb;
 }
 
